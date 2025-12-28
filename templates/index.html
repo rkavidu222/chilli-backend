@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chili Leaf Disease & Deficiency Detection</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#2E7D32',
+            secondary: '#1B5E20',
+            healthy: '#16a34a',
+            disease: '#dc2626',
+            deficiency: '#f59e0b'
+          },
+          animation: {
+            fade: 'fadeIn 0.6s ease-out',
+            shake: 'shake 0.3s'
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: 0, transform: 'translateY(10px)' },
+              '100%': { opacity: 1, transform: 'translateY(0)' }
+            },
+            shake: {
+              '0%,100%': { transform: 'translateX(0)' },
+              '25%': { transform: 'translateX(-5px)' },
+              '75%': { transform: 'translateX(5px)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="min-h-screen bg-gradient-to-br from-lime-50 via-green-50 to-emerald-100 flex items-center justify-center p-4 relative">
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay"
+     class="hidden absolute inset-0 bg-black/40 flex flex-col items-center justify-center z-50">
+  <div class="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mb-4"></div>
+  <span class="text-white font-semibold">Analyzing Leaf...</span>
+</div>
+
+<div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 animate-fade">
+
+  <h1 class="text-2xl font-bold text-center text-primary mb-2">
+    🌿 Chili Leaf Health Detection
+  </h1>
+
+  <p class="text-center text-gray-500 text-sm mb-6">
+    Upload a chili leaf image to detect diseases or nutrient deficiencies
+  </p>
+
+  <form method="POST" enctype="multipart/form-data"
+        id="leafForm"
+        class="space-y-4"
+        onsubmit="return validateForm()">
+
+    <!-- Upload Box -->
+    <label id="uploadBox"
+      class="flex flex-col items-center justify-center border-2 border-dashed border-primary rounded-2xl p-6 cursor-pointer
+             hover:bg-green-50 transition shadow hover:shadow-md transform hover:scale-105">
+
+      <span class="text-primary font-semibold">Click to upload image</span>
+      <span class="text-xs text-gray-500 mt-1">JPG or PNG</span>
+
+      <input type="file" name="file" accept="image/*" hidden id="fileInput"
+             onchange="previewImage(event)">
+    </label>
+
+    <!-- Error -->
+    <p id="errorMsg"
+       class="hidden text-red-600 text-sm text-center font-semibold">
+      ⚠️ Please upload a chili leaf image before predicting
+    </p>
+
+    <!-- Preview -->
+    <div class="flex justify-center">
+      <img id="previewImg"
+           class="hidden mt-4 rounded-2xl max-h-48 shadow-lg"/>
+    </div>
+
+    <!-- Buttons -->
+    <div class="flex gap-3">
+      <button type="submit"
+        class="flex-1 bg-primary text-white py-3 rounded-2xl font-semibold text-lg
+               hover:bg-secondary transition shadow">
+        Predict
+      </button>
+
+      <button type="button"
+        onclick="clearForm()"
+        class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-2xl font-semibold text-lg
+               hover:bg-gray-300 transition shadow">
+        Clear
+      </button>
+    </div>
+  </form>
+
+  <!-- Result -->
+  {% if result %}
+  <div id="resultBox"
+       class="mt-6 p-4 rounded-2xl text-center font-semibold text-lg shadow animate-fade
+       {% if 'Healthy' in result %} bg-healthy text-white
+       {% elif 'Deficiency' in result %} bg-deficiency text-white
+       {% else %} bg-disease text-white {% endif %}">
+    {{ result }}
+  </div>
+  {% endif %}
+
+  <p class="text-xs text-center text-gray-400 mt-4">
+    Two-Stage CNN • MobileNetV2
+  </p>
+</div>
+
+<script>
+  function previewImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const img = document.getElementById("previewImg");
+    const url = URL.createObjectURL(file);
+
+    img.src = url;
+    img.classList.remove("hidden");
+
+    // ✅ Save preview for page reload
+    localStorage.setItem("leafPreview", url);
+
+    document.getElementById("errorMsg").classList.add("hidden");
+    document.getElementById("uploadBox").classList.remove("border-red-500");
+  }
+
+  function validateForm() {
+    const fileInput = document.getElementById("fileInput");
+
+    if (!fileInput.files.length) {
+      document.getElementById("errorMsg").classList.remove("hidden");
+      document.getElementById("uploadBox").classList.add("border-red-500", "animate-shake");
+      setTimeout(() =>
+        document.getElementById("uploadBox").classList.remove("animate-shake"), 300
+      );
+      return false;
+    }
+
+    document.getElementById("loadingOverlay").classList.remove("hidden");
+    return true;
+  }
+
+  function clearForm() {
+    localStorage.removeItem("leafPreview");
+
+    document.getElementById("leafForm").reset();
+
+    const img = document.getElementById("previewImg");
+    img.src = "";
+    img.classList.add("hidden");
+
+    const result = document.getElementById("resultBox");
+    if (result) result.remove();
+
+    document.getElementById("errorMsg").classList.add("hidden");
+    document.getElementById("uploadBox").classList.remove("border-red-500");
+    document.getElementById("loadingOverlay").classList.add("hidden");
+  }
+
+  // ✅ Restore image after prediction
+  window.onload = () => {
+    const saved = localStorage.getItem("leafPreview");
+    if (saved) {
+      const img = document.getElementById("previewImg");
+      img.src = saved;
+      img.classList.remove("hidden");
+    }
+  };
+</script>
+
+</body>
+</html>
